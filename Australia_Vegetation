@@ -1,0 +1,77 @@
+using ArchGDAL, Rasters, Plots, Statistics, Shapefile, DataFrames, Dates, GeoInterface
+using CSV
+using NighttimeLights
+using GADM
+
+path = "/Users/dmitrysytin/Desktop/Economics Stanford/Australia 2/" filelist = readdir(path)
+dates = collect(Date(2022,12):Month(1):Date(2022, 12))
+
+#bounds = X(Rasters.Between(140.36, 154.43)), Y(Rasters.Between(-39.4, -20.40)) 
+Australia bounds= (X(Rasters.Between(148,154)), Y(Rasters.Between(-37, -27)))# bounding box New South Wales
+
+# Filter to include only .tif or .tiff files
+tif_files = filter(f -> endswith(lowercase(f), ".tif") || endswith(lowercase(f), ".tiff"), filelist)
+
+aod_raster_list = [Raster(joinpath(path, i), lazy = true)[bounds...] for i in tif_files]
+
+timestamps = collect(1:length(aod_raster_list)) aod_series = RasterSeries(aod_raster_list, Ti(timestamps)) aod_datacube = Rasters.combine(aod_series, Ti)[bounds...]
+
+
+#Plot results
+gr()
+plot(view(aod_datacube, Band(1), Ti(5)), color = cgrad(:turbo, rev=true),title = "NDVI — January 2022",
+xlabel = "Longitude", ylabel = "Latitude")
+
+#Plot graph
+pyplot() meanall = []
+for datas in tif_files
+data=Raster(datas, lazy = true)[bounds...]
+meani = Statistics.mean((skipmissing(Array(data)))) mean = Int(trunc(meani))
+push!(meanall, mean)
+println(meanall)
+end
+dates= [2018, 2019, 2020, 2021, 2022, 2023,2024,2025]
+plot(dates, meanall,
+label = "Mean vegetation Level ",
+lw = 2,
+marker = :circle,
+xlabel = "Years",
+ylabel = "Mean Vegetation Level", title = "Australia's Vegetation Index")
+
+path = "/Users/dmitrysytin/Desktop/Economics Stanford/Australia-air/" filelist = readdir(path)
+dates = collect(Date(2022,12):Month(1):Date(2022, 12))
+
+bounds= (X(Rasters.Between(148,154)), Y(Rasters.Between(-37, -27))) # Filter to include only .tif or .tiff files
+tif_files = filter(f -> endswith(lowercase(f), ".tif") || endswith(lowercase(f), ".tiff"), filelist)
+
+
+aod_raster_list = [Raster(joinpath(path, i), lazy = true)[bounds...] for i in tif_files]
+
+timestamps = collect(1:length(aod_raster_list)) aod_series = RasterSeries(aod_raster_list, Ti(timestamps)) aod_datacube = Rasters.combine(aod_series, Ti)[bounds...]
+
+# Plot results
+gr()
+plot(view(aod_datacube, Band(1), Ti(5)), color = cgrad(:magma, rev= true),title = "AEROSOL — January 2022",
+xlabel = "Longitude", ylabel = "Latitude")
+#view(aod_datacube, Band(1), Ti(1)) |> plot
+#savefig("sliceair2022.png")
+
+#Plot graph
+pyplot() meanall = []
+for datas in tif_files
+data=Raster(datas, lazy = true)[bounds...]
+meani = Statistics.mean((skipmissing(Array(data)))) mean = Int(trunc(meani))
+push!(meanall, mean)
+println(meanall)
+end
+dates= [2018, 2019, 2020, 2021, 2022, 2023,2024,2025]
+plot(dates, meanall,
+label = "Mean aerosol Level ",
+lw = 2,
+marker = :circle,
+xlabel = "Years",
+ylabel = "Mean Aerosol Level", title = "Australia's Aerosol Level")
+ #savefig("sliced.png")
+
+
+
